@@ -79,22 +79,33 @@ def main():
                   repr(new_episodes.notifications))
 
     print('== movie item (326) ==')
-    movie = harness.run('item', id='326')
+    movie_all = harness.run('item', id='326')
+    movie = type(movie_all)()
+    movie.items = [i for i in movie_all.items
+                   if i['item'].properties.get('IsPlayable')]
+    movie.notifications = movie_all.notifications
+    movie.resolved = movie_all.resolved
+    movie.content = movie_all.content
     CHECKER.check(len(movie.items) >= 1, 'movie sources listed', str(len(movie.items)))
     CHECKER.check(all(i['item'].properties.get('IsPlayable') for i in movie.items),
                   'movie sources are playable')
     CHECKER.check(not movie.notifications, 'movie view has no errors', repr(movie.notifications))
+    CHECKER.check(any(i['label'].startswith('☆') or i['label'].startswith('★')
+                      for i in movie_all.items), 'movie view offers favourites toggle')
 
     print('== series item (77044) ==')
-    series = harness.run('item', id='77044')
-    CHECKER.check(len(series.items) >= 20, 'series episodes listed', str(len(series.items)))
-    if series.items:
-        CHECKER.check(series.items[0]['label'].startswith('С1Э1'),
-                      'episode label format', series.items[0]['label'])
+    series_all = harness.run('item', id='77044')
+    series = [i for i in series_all.items
+              if i['item'].properties.get('IsPlayable')]
+    CHECKER.check(len(series) >= 20, 'series episodes listed', str(len(series)))
+    if series:
+        CHECKER.check(series[0]['label'].startswith('С1Э1'),
+                      'episode label format', series[0]['label'])
 
     print('== multi-season series (10250911) ==')
-    kevin = harness.run('item', id='10250911')
-    CHECKER.check(len(kevin.items) == 8, 'kevin has 8 episodes', str(len(kevin.items)))
+    kevin = [i for i in harness.run('item', id='10250911').items
+             if i['item'].properties.get('IsPlayable')]
+    CHECKER.check(len(kevin) == 8, 'kevin has 8 episodes', str(len(kevin)))
 
     print('== playback ==')
     if movie.items:
@@ -129,6 +140,44 @@ def main():
         if mp4.resolved and mp4.resolved['ok']:
             CHECKER.check('.mp4' in mp4.resolved['path'], 'MP4 path is progressive',
                           mp4.resolved['path'])
+
+    print('== hls quality ==')
+    if movie.items:
+        play_params = params_from_url(movie.items[0]['url'])
+        pinned = harness.run('play', settings={'playback_mode': '1', 'hls_quality': '1'},
+                             u=play_params.get('u'), t='test', p='')
+        CHECKER.check(pinned.resolved and '1920x1080' in pinned.resolved['path'],
+                      '1080p rendition is pinned', str(pinned.resolved and pinned.resolved['path']))
+
+        adaptive = harness.run('play', settings={'playback_mode': '1', 'hls_quality': '0'},
+                               u=play_params.get('u'), t='test', p='')
+        CHECKER.check(adaptive.resolved and adaptive.resolved['path'].endswith('playlist.m3u8'),
+                      'adaptive mode keeps the master playlist')
+
+    print('== favourites ==')
+    empty = harness.run('favorites')
+    CHECKER.check(not empty.items, 'favourites start empty', str(len(empty.items)))
+    root_menu = harness.run('root')
+    CHECKER.check(any(i['label'].startswith('Фаварыты') for i in root_menu.items),
+                  'root has favourites entry')
+
+    harness.run('fav_toggle', id='77044', t='Сябры', y='1994',
+                p='https://cdn.kinabel.online/poster/77044.jpg')
+    listed = harness.run('favorites')
+    CHECKER.check(len(listed.items) == 1, 'favourite is listed', str(len(listed.items)))
+    if listed.items:
+        CHECKER.check('Сябры' in listed.items[0]['label'], 'favourite label',
+                      listed.items[0]['label'])
+        CHECKER.check(listed.items[0]['item'].context_menu
+                      and 'Выдаліць' in listed.items[0]['item'].context_menu[0][0],
+                      'favourite has remove action')
+
+    detail = harness.run('item', id='77044')
+    CHECKER.check(any(i['label'].startswith('★') for i in detail.items),
+                  'item view shows the favourite state')
+
+    harness.run('fav_toggle', id='77044', t='Сябры')
+    CHECKER.check(not harness.run('favorites').items, 'favourite can be removed')
 
     print('== random ==')
     random_result = harness.run('random')

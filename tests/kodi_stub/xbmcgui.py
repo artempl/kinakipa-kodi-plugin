@@ -16,6 +16,7 @@ class ListItem(object):
         self.info = {}
         self.mime = None
         self.content_lookup = True
+        self.context_menu = []
 
     def setProperty(self, key, value):
         self.properties[key] = value
@@ -34,6 +35,12 @@ class ListItem(object):
 
     def setContentLookup(self, value):
         self.content_lookup = value
+
+    def addContextMenuItems(self, items, replaceItems=False):
+        if replaceItems:
+            self.context_menu = list(items)
+        else:
+            self.context_menu.extend(items)
 
     def setPath(self, path):
         self.path = path

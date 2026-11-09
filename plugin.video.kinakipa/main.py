@@ -75,6 +75,13 @@ def _playback_mode():
     return {0: 'auto', 1: 'hls', 2: 'mp4'}.get(_int_setting('playback_mode', 0), 'auto')
 
 
+def _hls_quality():
+    """Fixed HLS rendition height, or None for adaptive playback."""
+    heights = (1080, 720, 480, 360, 240)
+    index = _int_setting('hls_quality', 0) - 1
+    return heights[index] if 0 <= index < len(heights) else None
+
+
 def log(message, level=xbmc.LOGDEBUG):
     xbmc.log('[kinakipa] %s' % message, level)
 
@@ -213,6 +220,70 @@ def cache_set(key, value):
     data = _cache_load()
     data[key] = {'ts': time.time(), 'value': value}
     _cache_store(data)
+
+
+# ---------------------------------------------------------------------------
+# Favourites (stored as JSON in the add-on profile)
+# ---------------------------------------------------------------------------
+
+FAVORITES_FILE = 'favorites.json'
+_FAVORITES = None
+
+
+def favorites():
+    global _FAVORITES
+    if _FAVORITES is not None:
+        return _FAVORITES
+    path = os.path.join(PROFILE_DIR, FAVORITES_FILE)
+    try:
+        with open(path, 'r', encoding='utf-8') as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        data = []
+    _FAVORITES = data if isinstance(data, list) else []
+    return _FAVORITES
+
+
+def _save_favorites(items):
+    global _FAVORITES
+    _FAVORITES = items
+    path = os.path.join(PROFILE_DIR, FAVORITES_FILE)
+    try:
+        if not os.path.isdir(PROFILE_DIR):
+            os.makedirs(PROFILE_DIR)
+        with open(path, 'w', encoding='utf-8') as handle:
+            json.dump(items, handle, ensure_ascii=False, indent=1)
+    except OSError as exc:
+        log('cannot write favourites: %s' % exc, xbmc.LOGWARNING)
+
+
+def is_favorite(movie_id):
+    return any(item.get('id') == str(movie_id) for item in favorites())
+
+
+def toggle_favorite(entry):
+    """Add or remove a title; returns True when it was added."""
+    items = list(favorites())
+    for index, item in enumerate(items):
+        if item.get('id') == entry['id']:
+            items.pop(index)
+            _save_favorites(items)
+            return False
+    entry = dict(entry)
+    entry['ts'] = time.time()
+    items.insert(0, entry)
+    _save_favorites(items)
+    return True
+
+
+def _favorite_menu(entry):
+    label = '★ Выдаліць з фаварытаў' if is_favorite(entry['id']) \
+        else '☆ Дадаць у фаварыты'
+    action = 'RunPlugin(%s)' % _url('fav_toggle', id=entry['id'],
+                                    t=entry.get('title', ''),
+                                    p=entry.get('poster', ''),
+                                    y=entry.get('year', ''))
+    return [(label, action)]
 
 
 # ---------------------------------------------------------------------------
@@ -497,6 +568,12 @@ def resolve_stream(iframe_url):
             if mp4:
                 return mp4, 'mp4'
             log('MP4 unavailable, falling back to HLS', xbmc.LOGWARNING)
+        quality = _hls_quality()
+        if quality:
+            try:
+                return _pin_quality(playlist, quality) or playlist, 'hls'
+            except SiteError as exc:
+                log('quality pinning failed: %s' % exc, xbmc.LOGWARNING)
         return playlist, 'hls'
 
     lowered = iframe_url.lower()
@@ -535,6 +612,41 @@ def _bunny_playlist(embed_url):
     playlist = htmllib.unescape(playlist_match.group(0))
     cache_set(cache_key, playlist)
     return playlist
+
+
+VARIANT_RE = re.compile(
+    r'#EXT-X-STREAM-INF:[^\n]*RESOLUTION=(\d+)x(\d+)[^\n]*\n([^\n#]+)')
+
+
+def _pin_quality(master_url, height):
+    """Return the media playlist of the rendition closest to *height*.
+
+    Pinning a single rendition (instead of handing the master playlist to
+    inputstream.adaptive) keeps the quality fixed for the whole playback.
+    """
+    cache_key = 'variant:%s@%d' % (master_url, height)
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    text = http_get(master_url)
+    variants = []
+    for match in VARIANT_RE.finditer(text):
+        variant_height = int(match.group(2))
+        uri = match.group(3).strip()
+        variants.append((variant_height,
+                         urllib.parse.urljoin(master_url, uri)))
+    if not variants:
+        return None
+    variants.sort()
+
+    chosen = variants[0]
+    for candidate in variants:
+        if candidate[0] <= height:
+            chosen = candidate
+    log('pinned %dp rendition (%dp available)' % (height, chosen[0]))
+    cache_set(cache_key, chosen[1])
+    return chosen[1]
 
 
 def _bunny_mp4(playlist_url):
@@ -601,6 +713,8 @@ def _finish():
 def view_root(_params):
     xbmcplugin.setContent(HANDLE, 'files')
     _add_folder('Пошук', _url('search'))
+    favourites = favorites()
+    _add_folder('Фаварыты (%d)' % len(favourites), _url('favorites'))
     _add_folder('Новыя эпізоды', _url('sec', n='Новыя эпізоды'))
     _add_folder('Актуальныя рэлізы', _url('sec', n='Актуальныя рэлізы'))
     _add_folder('Фільмы', _url('catalog', type='movie', title='Фільмы'))
@@ -628,6 +742,43 @@ def view_search(_params):
         if query:
             target = _url('catalog', query=query, title='Пошук: %s' % query)
             xbmc.executebuiltin('Container.Update(%s,replace)' % target)
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+
+
+def view_favorites(_params):
+    xbmcplugin.setContent(HANDLE, 'movies')
+    items = favorites()
+    if not items:
+        notify('Фаварытаў пакуль няма')
+        _finish()
+        return
+    for entry in items:
+        label = entry.get('title') or entry.get('id')
+        if entry.get('year'):
+            label = '%s (%s)' % (label, entry['year'])
+        poster = entry.get('poster', '')
+        art = {'thumb': poster, 'poster': poster, 'icon': poster}
+        item = _add_folder(label, _url('item', id=entry['id']), art=art,
+                           info={'title': entry.get('title', ''),
+                                 'year': entry.get('year', '')})
+        item.addContextMenuItems(_favorite_menu(entry))
+    _finish()
+
+
+def view_favorite_toggle(params):
+    movie_id = params.get('id', '')
+    if not movie_id:
+        _finish()
+        return
+    added = toggle_favorite({
+        'id': movie_id,
+        'title': params.get('t', ''),
+        'poster': params.get('p', ''),
+        'year': params.get('y', ''),
+    })
+    notify('Дададзена ў фаварыты' if added else 'Выдалена з фаварытаў',
+           heading=params.get('t') or ADDON_NAME)
+    xbmc.executebuiltin('Container.Refresh')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
@@ -794,7 +945,13 @@ def _render_cards(items, content):
                'icon': card['poster']}
         info = {'title': card['title'], 'year': card['year'],
                 'mediatype': 'movie' if content == 'movies' else 'episode'}
-        _add_folder(label, _url('item', id=card['id']), art=art, info=info)
+        item = _add_folder(label, _url('item', id=card['id']), art=art, info=info)
+        item.addContextMenuItems(_favorite_menu({
+            'id': card['id'],
+            'title': card['title'],
+            'poster': card['poster'],
+            'year': card['year'],
+        }))
 
 
 def view_item(params):
@@ -828,6 +985,20 @@ def view_item(params):
     art = {'thumb': meta['poster'], 'poster': meta['poster'], 'icon': meta['poster'],
            'fanart': meta['fanart'] or meta['poster']}
     info = _kodi_info(meta, is_tv)
+
+    if season is None:
+        favourite_entry = {
+            'id': movie_id,
+            'title': label_prefix,
+            'poster': meta['poster'],
+            'year': meta['year'],
+        }
+        if is_favorite(movie_id):
+            _add_folder('★ У фаварытах — прыбраць',
+                        _url('fav_toggle', **_fav_params(favourite_entry)))
+        else:
+            _add_folder('☆ Дадаць у фаварыты',
+                        _url('fav_toggle', **_fav_params(favourite_entry)))
 
     if is_tv and len(seasons) > 1 and season is None:
         xbmcplugin.setContent(HANDLE, 'seasons')
@@ -878,6 +1049,11 @@ def _episode_word(count):
     if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
         return 'серыі'
     return 'серый'
+
+
+def _fav_params(entry):
+    return {'id': entry['id'], 't': entry.get('title', ''),
+            'p': entry.get('poster', ''), 'y': entry.get('year', '')}
 
 
 def _source_label(source, is_tv, season):
@@ -975,6 +1151,8 @@ def view_random(_params):
 VIEWS = {
     'root': view_root,
     'search': view_search,
+    'favorites': view_favorites,
+    'fav_toggle': view_favorite_toggle,
     'sections': view_sections,
     'sec': view_section,
     'genres': view_genres,

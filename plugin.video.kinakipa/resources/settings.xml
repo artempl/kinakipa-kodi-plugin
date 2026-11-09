@@ -21,6 +21,9 @@
         <setting id="playback_mode" type="enum" label="Спосаб прайгравання" values="Аўтаматычна|HLS (inputstream.adaptive)|MP4" default="0">
             <level>0</level>
         </setting>
+        <setting id="hls_quality" type="enum" label="Якасць HLS" values="Адаптыўна (аўта)|1080p|720p|480p|360p|240p" default="0">
+            <level>0</level>
+        </setting>
         <setting id="mp4_quality" type="enum" label="Якасць MP4" values="1080p|720p|480p|360p|240p" default="1">
             <level>1</level>
         </setting>

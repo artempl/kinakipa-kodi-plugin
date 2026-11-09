@@ -106,7 +106,11 @@ GET https://iframe.mediadelivery.net/embed/{library}/{guid}
 The CDN host depends on the library (`142530`, `129236`, `142818`, …), so always
 parse it from the embed HTML. Progressive fallbacks live next to it:
 `https://vz-{hash}.b-cdn.net/{guid}/play_{240,360,480,720}p.mp4` (probe with HEAD;
-1080p is not always rendered). `playlist.m3u8` resolves 240p–1080p.
+1080p is not always rendered). `playlist.m3u8` resolves 240p–1080p. Variant URIs are directories such as
+`1920x1080/video.m3u8` (or `720p/video.m3u8` in older libraries), so parse
+`RESOLUTION=` and `urljoin` the next line — never construct the path by hand.
+The `Якасць HLS` setting pins one rendition by handing its media playlist to
+IA, which keeps the quality fixed instead of adapting.
 
 ### Other endpoints
 
@@ -125,10 +129,11 @@ Single file, stdlib only, Kodi 19+ / Python 3. Sections in order:
 2. HTTP layer — `http_get`, `http_location`, `http_json`, `http_exists`, `SiteError`
 3. Disk cache in the add-on profile (`cache.json`) — resolved playlists, MP4
    renditions, filter lists
-4. HTML helpers + parsers (`parse_cards`, `parse_home_sections`, `parse_item_page`,
+4. Favourites store (`favorites.json` in the profile, `toggle_favorite`, context menus)
+5. HTML helpers + parsers (`parse_cards`, `parse_home_sections`, `parse_item_page`,
    `parse_select`, `fetch_sources`)
-5. Stream resolution (`resolve_stream`, `_bunny_playlist`, `_bunny_mp4`)
-6. Views (one function per `action`) and the `VIEWS` router
+6. Stream resolution (`resolve_stream`, `_bunny_playlist`, `_pin_quality`, `_bunny_mp4`)
+7. Views (one function per `action`) and the `VIEWS` router
 
 Router actions:
 
@@ -142,6 +147,8 @@ Router actions:
 | `genres` / `countries` / `years` | — | filter menus |
 | `item` | `id`, optional `season` | sources / seasons / episodes |
 | `play` | `u` (iframe URL), `t` (title), `p` (poster) | resolves + `setResolvedUrl` |
+| `favorites` | — | saved titles from `favorites.json` |
+| `fav_toggle` | `id`, `t`, `p`, `y` | add/remove favourite + `Container.Refresh` |
 | `random` / `settings` | — | redirect / `openSettings` |
 
 Kodi facts used: `sys.argv[0]` = plugin URL, `sys.argv[1]` = handle,

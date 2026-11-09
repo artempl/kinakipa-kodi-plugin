@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-<addon id="plugin.video.kinakipa" name="Кінакіпа" version="1.0.0" provider-name="arciom">
+<addon id="plugin.video.kinakipa" name="Кінакіпа" version="1.1.0" provider-name="arciom">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="inputstream.adaptive" version="2.0.0" optional="true"/>
@@ -15,7 +15,8 @@
         <description lang="en_GB">Browse and stream movies, TV series and cartoons with Belarusian dubbing or subtitles from kinakipa.site. Search, catalog, genres, countries, years and new episodes — right inside Kodi.</description>
         <license>GPL-2.0-or-later</license>
         <platform>all</platform>
-        <news>1.0.0 - першы выпуск</news>
+        <news>1.1.0 - фаварыты і фіксацыя якасці HLS
+1.0.0 - першы выпуск</news>
         <assets>
             <icon>icon.png</icon>
             <fanart>fanart.jpg</fanart>
