@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.kinakipa" name="Кінакіпа Repository" version="1.0.0" provider-name="arciom">
+    <extension point="xbmc.addon.repository">
+        <dir minversion="19.0.0">
+            <info compressed="false">https://artempl.github.io/kinakipa-kodi-plugin/addons.xml</info>
+            <checksum>https://artempl.github.io/kinakipa-kodi-plugin/addons.xml.md5</checksum>
+            <datadir zip="true">https://artempl.github.io/kinakipa-kodi-plugin/</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="be_BY">Рэпазітар плагіна Кінакіпа</summary>
+        <summary lang="en_GB">Repository for the Kinakipa add-on</summary>
+        <description lang="be_BY">Аўтаматычныя абнаўленні для плагіна «Кінакіпа» — фільмы і серыялы па-беларуску з kinakipa.site.</description>
+        <description lang="en_GB">Automatic updates for the Kinakipa add-on — Belarusian movies and TV series from kinakipa.site.</description>
+        <license>GPL-2.0-or-later</license>
+        <platform>all</platform>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>

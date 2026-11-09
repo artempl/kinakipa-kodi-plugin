@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="be">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кінакіпа для Kodi — фільмы і серыялы па-беларуску</title>
+  <meta name="description" content="Бясплатны плагін Kodi для kinakipa.site: каталог фільмаў, серыялаў і мультфільмаў з беларускай агучкай і субтытрамі. Пошук, жанры, краіны, гады і новыя эпізоды — проста ў Kodi.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#21202a">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Кінакіпа для Kodi — фільмы і серыялы па-беларуску">
+  <meta property="og:description" content="Бясплатны плагін Kodi для kinakipa.site: каталог, пошук, новыя эпізоды і HLS-прайграванне.">
+  <meta property="og:url" content="https://artempl.github.io/kinakipa-kodi-plugin/">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://artempl.github.io/kinakipa-kodi-plugin/fanart.jpg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Кінакіпа для Kodi">
+  <meta name="twitter:description" content="Фільмы і серыялы па-беларуску з kinakipa.site — проста ў Kodi.">
+  <meta name="twitter:image" content="https://artempl.github.io/kinakipa-kodi-plugin/fanart.jpg">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Кінакіпа для Kodi",
+    "operatingSystem": "Kodi 19+",
+    "applicationCategory": "Multimedia",
+    "description": "Kodi video addon for browsing and streaming Belarusian movies and TV series from kinakipa.site.",
+    "url": "https://github.com/artempl/kinakipa-kodi-plugin",
+    "downloadUrl": "https://github.com/artempl/kinakipa-kodi-plugin/releases",
+    "softwareVersion": "1.0.0",
+    "license": "https://www.gnu.org/licenses/gpl-2.0.html",
+    "author": { "@type": "Person", "name": "arciom" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #21202a;
+      --bg-soft: #2a2836;
+      --card: #2c2a38;
+      --line: #3a3848;
+      --text: #fbe0d0;
+      --muted: #b9b3c4;
+      --pink: #f37f7f;
+      --purple: #944b8c;
+      --sand: #d0baae;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--pink); text-decoration: none; }
+    a:hover { color: #ffa3a3; text-decoration: underline; }
+    .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.4rem 3rem; }
+
+    header { text-align: center; padding: 2.5rem 0 1rem; }
+    header .logo {
+      width: min(100%, 420px);
+      height: auto;
+      display: block;
+      margin: 0 auto 1.2rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--pink), var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 1.08rem;
+      max-width: 620px;
+      margin: 0.7rem auto 0;
+    }
+    .badges { margin-top: 1.1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--line);
+      color: var(--sand);
+      background: var(--bg-soft);
+    }
+
+    section { margin: 2.4rem 0; }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      padding-bottom: 0.45rem;
+      border-bottom: 1px solid var(--line);
+    }
+    h3 { font-size: 1rem; margin: 1.3rem 0 0.6rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.9rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.1rem 1.2rem;
+    }
+    .card h4 { font-size: 0.98rem; margin-bottom: 0.25rem; }
+    .card p { color: var(--muted); font-size: 0.9rem; }
+    .card .ico {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      margin-bottom: 0.6rem;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .tree {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.1rem 1.3rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.9;
+      color: var(--muted);
+      overflow-x: auto;
+    }
+    .tree .f { color: var(--pink); }
+    .tree .l { color: #8fd3a8; }
+    .tree .i1 { padding-left: 1.3rem; }
+    .tree .i2 { padding-left: 2.6rem; }
+    .tree .i3 { padding-left: 3.9rem; }
+
+    ol.steps { list-style: none; counter-reset: step; }
+    ol.steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 0.85rem 1rem 0.85rem 3rem;
+      margin-bottom: 0.6rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    ol.steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0.85rem;
+      top: 0.9rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    code {
+      background: #1a1922;
+      color: var(--sand);
+      padding: 0.12rem 0.4rem;
+      border-radius: 5px;
+      font-size: 0.86em;
+    }
+
+    .buttons { display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      display: inline-block;
+      padding: 0.72rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+    .btn:hover { text-decoration: none; transform: translateY(-1px); }
+    .btn-primary { background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; }
+    .btn-secondary { background: var(--bg-soft); color: var(--text); border: 1px solid var(--line); }
+
+    .note {
+      background: rgba(243, 127, 127, 0.08);
+      border-left: 3px solid var(--pink);
+      border-radius: 0 10px 10px 0;
+      padding: 0.9rem 1.1rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    ul.plain { padding-left: 1.2rem; color: var(--muted); }
+    ul.plain li { margin-bottom: 0.3rem; }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.4rem;
+      border-top: 1px solid var(--line);
+      text-align: center;
+      color: #8b8698;
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--muted); }
+    footer p + p { margin-top: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img class="logo" src="fanart.jpg" alt="Кінакіпа">
+      <h1>Кінакіпа для Kodi</h1>
+      <p>Фільмы, серыялы і мультфільмы па-беларуску з <a href="https://kinakipa.site/">kinakipa.site</a> — проста ў вашым Kodi.</p>
+      <div class="badges">
+        <span class="badge">v1.0.0</span>
+        <span class="badge">Kodi 19+</span>
+        <span class="badge">Без залежнасцей</span>
+        <span class="badge">GPL-2.0</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>Магчымасці</h2>
+      <div class="grid">
+        <div class="card">
+          <span class="ico">▶</span>
+          <h4>Прамое прайграванне</h4>
+          <p>HLS праз inputstream.adaptive, з аўтаматычным пераходам на MP4, калі IA не ўсталяваны.</p>
+        </div>
+        <div class="card">
+          <span class="ico">⌕</span>
+          <h4>Пошук</h4>
+          <p>Шукайце назвы непасрэдна з пульта — вынікі адкрываюцца ў каталозе.</p>
+        </div>
+        <div class="card">
+          <span class="ico">≡</span>
+          <h4>Каталог і фільтры</h4>
+          <p>Фільмы, серыялы, мультфільмы, жанры, краіны і дыяпазоны гадоў.</p>
+        </div>
+        <div class="card">
+          <span class="ico">★</span>
+          <h4>Новыя эпізоды</h4>
+          <p>Раздзелы галоўнай старонкі сайта: новыя серыі, актуальныя рэлізы і іншае.</p>
+        </div>
+        <div class="card">
+          <span class="ico">ⓘ</span>
+          <h4>Метаданыя</h4>
+          <p>Пастэры, апісанне, год, жанры, рэйтынгі, рэжысёры і акцёры — у інтэрфейсе Kodi.</p>
+        </div>
+        <div class="card">
+          <span class="ico">⟳</span>
+          <h4>Аўтаабнаўленні</h4>
+          <p>Усталюйце праз рэпазітар — новыя версіі прыйдуць самі.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Навігацыя</h2>
+      <div class="tree">
+        <span class="f">▸ Галоўнае меню</span><br>
+        <span class="i1"><span class="f">▸ Фільмы / Серыялы / Мультфільмы</span> — каталог з падгрузкай старонак</span><br>
+        <span class="i1"><span class="f">▸ Жанры / Краіны / Гады</span> — фільтры каталога</span><br>
+        <span class="i1"><span class="f">▸ Новыя эпізоды / Актуальныя рэлізы</span> — раздзелы галоўнай</span><br>
+        <span class="i2"><span class="f">▸ Тайтл</span> — інфармацыя пра фільм або серыял</span><br>
+        <span class="i3"><span class="f">▸ Сезон</span> — для шматсязонных серыялаў</span><br>
+        <span class="i3"><span class="l">▸ Эпізод / агучка</span> — прайграванне</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Усталяванне</h2>
+      <h3>Праз рэпазітар (рэкамендуецца — аўтаабнаўленні)</h3>
+      <ol class="steps">
+        <li>У Kodi: <strong>Налады → Сістэма → Дадаткі</strong> → уключыце <strong>Невядомыя крыніцы</strong></li>
+        <li>Спампуйце <code>repository.kinakipa.zip</code> са <a href="https://github.com/artempl/kinakipa-kodi-plugin/releases">старонкі рэлізаў</a></li>
+        <li><strong>Налады → Дадаткі → Усталяваць з zip-файла</strong> → абярыце <code>repository.kinakipa.zip</code></li>
+        <li><strong>Усталяваць з рэпазітара → Кінакіпа Repository → Відэададаткі → Кінакіпа → Усталяваць</strong></li>
+      </ol>
+
+      <h3>Наўпрост з ZIP (без аўтаабнаўленняў)</h3>
+      <p style="color:var(--muted);font-size:0.93rem;">
+        Спампуйце <code>plugin.video.kinakipa.zip</code> са <a href="https://github.com/artempl/kinakipa-kodi-plugin/releases">старонкі рэлізаў</a>
+        і ўсталюйце праз <strong>Дадаткі → Усталяваць з zip-файла</strong>.
+      </p>
+
+      <p class="note" style="margin-top:1rem;">
+        Для HLS-прайгравання рэкамендуецца ўсталяваны <code>inputstream.adaptive</code> (звычайна ідзе разам з Kodi).
+        Калі яго няма, плагін аўтаматычна пераключыцца на MP4.
+      </p>
+    </section>
+
+    <section>
+      <h2>Патрабаванні</h2>
+      <ul class="plain">
+        <li>Kodi 19 (Matrix) або навейшы</li>
+        <li>Python 3 (убудаваны ў Kodi)</li>
+        <li>Інтэрнэт-злучэнне для стрымінгу</li>
+      </ul>
+    </section>
+
+    <section style="text-align:center">
+      <h2>Пачаць</h2>
+      <p style="color:var(--muted);margin-bottom:1.2rem;">Спампуйце апошні рэліз і глядзіце па-беларуску на любым прыладзе з Kodi.</p>
+      <div class="buttons">
+        <a class="btn btn-primary" href="https://github.com/artempl/kinakipa-kodi-plugin/releases">Спампаваць рэліз</a>
+        <a class="btn btn-secondary" href="https://github.com/artempl/kinakipa-kodi-plugin">GitHub</a>
+      </div>
+    </section>
+
+    <footer>
+      <p>
+        <a href="https://github.com/artempl/kinakipa-kodi-plugin">GitHub</a> ·
+        <a href="https://github.com/artempl/kinakipa-kodi-plugin/releases">Рэлізы</a> ·
+        <a href="https://github.com/artempl/kinakipa-kodi-plugin/issues">Пытанні</a>
+      </p>
+      <p>Ліцэнзія GPL-2.0-or-later. Неафіцыйны плагін: увесь кантэнт належыць kinakipa.site.</p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Build output
+/build/
+*.zip
+!pages/**/*.zip
+
+# Agent work dirs
+.omo/
+.scratch/
+
+# IDE
+.vscode/
+.idea/

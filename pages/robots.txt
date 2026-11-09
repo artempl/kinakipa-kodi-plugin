@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://artempl.github.io/kinakipa-kodi-plugin/sitemap.xml
