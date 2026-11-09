@@ -38,7 +38,7 @@ class Result(object):
         return '<Result %d items, resolved=%r>' % (len(self.items), self.resolved)
 
 
-def run(action='root', settings=None, **params):
+def run(action='root', settings=None, has_inputstream=True, **params):
     """Execute one plugin invocation and capture what it produced."""
     xbmc.reset()
     xbmc.SETTINGS.clear()
@@ -55,7 +55,7 @@ def run(action='root', settings=None, **params):
 
     xbmc.ADDON_PATH = ADDON_DIR
     xbmc.PROFILE = PROFILE
-    xbmc.COND['System.HasAddon(inputstream.adaptive)'] = True
+    xbmc.COND['System.HasAddon(inputstream.adaptive)'] = bool(has_inputstream)
 
     query = {'action': action}
     query.update({k: v for k, v in params.items() if v is not None})

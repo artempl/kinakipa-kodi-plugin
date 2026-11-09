@@ -112,6 +112,16 @@ def main():
             CHECKER.check(item.properties.get('inputstream') == 'inputstream.adaptive',
                           'inputstream.adaptive is set')
 
+        auto = harness.run('play', settings={'playback_mode': '0'},
+                           u=play_params.get('u'), t='test', p='')
+        CHECKER.check(auto.resolved and '.m3u8' in auto.resolved['path'],
+                      'auto mode prefers HLS with inputstream.adaptive')
+
+        no_ia = harness.run('play', settings={'playback_mode': '0'},
+                            has_inputstream=False, u=play_params.get('u'), t='test', p='')
+        CHECKER.check(no_ia.resolved and '.mp4' in no_ia.resolved['path'],
+                      'auto mode falls back to MP4 without inputstream.adaptive')
+
         mp4 = harness.run('play', settings={'playback_mode': '2'},
                           u=play_params.get('u'), t='test', p='')
         CHECKER.check(mp4.resolved and mp4.resolved['ok'], 'MP4 resolves',
