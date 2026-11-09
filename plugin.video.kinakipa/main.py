@@ -491,7 +491,8 @@ def resolve_stream(iframe_url):
     if 'mediadelivery.net/embed/' in iframe_url:
         playlist = _bunny_playlist(iframe_url)
         mode = _playback_mode()
-        if mode == 'mp4' or (mode == 'auto' and not _has_inputstream()):
+        # Never hand HLS to a player that cannot decode it.
+        if mode == 'mp4' or not _has_inputstream():
             mp4 = _bunny_mp4(playlist)
             if mp4:
                 return mp4, 'mp4'
@@ -513,14 +514,14 @@ def resolve_stream(iframe_url):
         match = re.search(pattern, page)
         if match:
             return htmllib.unescape(match.group(0)), kind
-    raise SiteError('No playable stream found')
+    raise SiteError('крыніца не падтрымліваецца')
 
 
 def _bunny_playlist(embed_url):
     """Resolve a Bunny Stream embed page to its HLS playlist URL."""
     match = re.search(r'/embed/([^/?#]+)/([^/?#]+)', embed_url)
     if not match:
-        raise SiteError('Unexpected Bunny embed URL')
+        raise SiteError('некарэктная спасылка Bunny')
     cache_key = 'bunny:%s/%s' % (match.group(1), match.group(2))
 
     cached = cache_get(cache_key)
@@ -530,7 +531,7 @@ def _bunny_playlist(embed_url):
     page = http_get(embed_url, referer=_site() + '/')
     playlist_match = re.search(r'https?://[^"\'\s\\]+?/playlist\.m3u8', page)
     if not playlist_match:
-        raise SiteError('Bunny playlist not found')
+        raise SiteError('не ўдалося знайсці плэйліст Bunny')
     playlist = htmllib.unescape(playlist_match.group(0))
     cache_set(cache_key, playlist)
     return playlist
@@ -945,7 +946,6 @@ def _play(iframe, title, poster):
         if _has_inputstream():
             item.setProperty('inputstream', 'inputstream.adaptive')
             item.setProperty('inputstream.adaptive.manifest_type', 'hls')
-            item.setProperty('inputstream.adaptive.stream_selection_type', 'adaptive')
     else:
         item.setMimeType('video/mp4')
 
