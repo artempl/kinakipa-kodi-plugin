@@ -46,6 +46,13 @@
 Спампаваць `plugin.video.kinakipa.zip` са [старонкі рэлізаў](https://github.com/artempl/kinakipa-kodi-plugin/releases)
 і ўсталяваць праз **Дадаткі → Усталяваць з zip-файла**.
 
+## Скріншоты
+
+![Налады: якасць HLS 1080p](docs/screenshots/settings-1080p.jpg)
+![Серыял 1670: сезоны](docs/screenshots/series-1670-seasons.jpg)
+![Серыял 1670: серыі](docs/screenshots/series-1670-episodes.jpg)
+![Плэер: 1080p](docs/screenshots/player-1080p.jpg)
+
 ## Налады
 
 Налады адкрываюцца ўнутры плагіна: **Кінакіпа → Налады** (не праз сістэмны дыялог Kodi — на некаторых зборках Kodi 21 ён не бачыць `resources/settings.xml`).
