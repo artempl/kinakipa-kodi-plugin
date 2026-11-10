@@ -1065,6 +1065,7 @@ def _render_cards(items, content):
 def view_item(params):
     movie_id = params.get('id', '')
     season = _to_int(params.get('season'))
+    episode = _to_int(params.get('episode'))
     try:
         page_html = http_get('%s/movie?id=%s' % (_site(), urllib.parse.quote(movie_id)))
     except SiteError as exc:
@@ -1111,7 +1112,8 @@ def view_item(params):
     if is_tv and len(seasons) > 1 and season is None:
         xbmcplugin.setContent(HANDLE, 'seasons')
         for number in seasons:
-            count = len([s for s in sources if s['season'] == number])
+            count = len({s['episode'] for s in sources
+                         if s['season'] == number and s['episode'] is not None})
             label = 'Сезон %d (%d %s)' % (number, count, _episode_word(count))
             season_info = dict(info)
             season_info.update({'season': number,
@@ -1123,6 +1125,8 @@ def view_item(params):
 
     if season is not None:
         sources = [s for s in sources if s['season'] == season]
+    if episode is not None:
+        sources = [s for s in sources if s['episode'] == episode]
 
     xbmcplugin.setContent(HANDLE, 'episodes' if is_tv else 'movies')
 
@@ -1134,12 +1138,11 @@ def view_item(params):
         # can try (they may work through other add-ons/browsers).
         visible = sources
 
-    for source in visible:
-        label = _source_label(source, is_tv, season)
+    def playable(source, label):
         if not source['supported']:
             label = '⚠ %s' % label
-        play_url = _url('play', u=source['iframe'], t='%s — %s' % (label_prefix, label),
-                        p=meta['poster'])
+        play_url = _url('play', u=source['iframe'],
+                        t='%s — %s' % (label_prefix, label), p=meta['poster'])
         item_info = dict(info)
         item_info['title'] = '%s — %s' % (label_prefix, label)
         if source['season']:
@@ -1148,6 +1151,44 @@ def view_item(params):
             item_info['episode'] = source['episode']
         _add_playable(label, play_url, art=art, info=item_info)
 
+    # Dub / subtitles variants of one episode belong together: a single
+    # variant stays a playable item, several become one folder.
+    if is_tv and episode is None:
+        groups, order, flat = {}, [], []
+        for source in visible:
+            if source['episode'] is None:
+                flat.append(source)
+                continue
+            if source['episode'] not in groups:
+                groups[source['episode']] = []
+                order.append(source['episode'])
+            groups[source['episode']].append(source)
+
+        for number in order:
+            group = groups[number]
+            if len(group) == 1:
+                playable(group[0], _source_label(group[0], True, season))
+                continue
+            names = ' / '.join(source['name'] for source in group)
+            shown_season = group[0]['season'] or season or 1
+            label = 'С%dЭ%d · %s' % (shown_season, number, names)
+            episode_info = dict(info)
+            episode_info.update({'title': '%s — С%dЭ%d' % (label_prefix, shown_season, number),
+                                 'season': shown_season,
+                                 'episode': number})
+            _add_folder(label, _url('item', id=movie_id, season=season,
+                                    episode=number, title=label_prefix),
+                        art=art, info=episode_info)
+
+        for source in flat:
+            playable(source, _source_label(source, True, season))
+        _finish()
+        return
+
+    for source in visible:
+        label = source['name'] if episode is not None \
+            else _source_label(source, is_tv, season)
+        playable(source, label)
     _finish()
 
 

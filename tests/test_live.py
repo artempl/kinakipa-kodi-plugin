@@ -107,6 +107,28 @@ def main():
              if i['item'].properties.get('IsPlayable')]
     CHECKER.check(len(kevin) == 8, 'kevin has 8 episodes', str(len(kevin)))
 
+    print('== episode variants (1670) ==')
+    seasons_view = harness.run('item', id='5430532')
+    season1 = next((i for i in seasons_view.items if 'Сезон 1' in i['label']), None)
+    CHECKER.check(season1 is not None, '1670 has season 1')
+    if season1:
+        sp = params_from_url(season1['url'])
+        episodes = harness.run(sp.pop('action'), **sp)
+        folder_episode = next((i for i in episodes.items
+                               if i['folder'] and 'С1Э1' in i['label']), None)
+        CHECKER.check(folder_episode is not None,
+                      'episode with several variants is a folder',
+                      str([i['label'] for i in episodes.items][:3]))
+        if folder_episode:
+            CHECKER.check('Агучка' in folder_episode['label']
+                          and 'Субцітры' in folder_episode['label'],
+                          'folder lists both variants', folder_episode['label'])
+            vp = params_from_url(folder_episode['url'])
+            variants = harness.run(vp.pop('action'), **vp)
+            labels = [i['label'] for i in variants.items]
+            CHECKER.check(len(labels) == 2 and all('·' not in l for l in labels),
+                          'variants are separate playable items', str(labels))
+
     print('== playback ==')
     if movie.items:
         play_params = params_from_url(movie.items[0]['url'])

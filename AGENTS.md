@@ -135,6 +135,11 @@ Single file, stdlib only, Kodi 19+ / Python 3. Sections in order:
 6. Stream resolution (`resolve_stream`, `_bunny_playlist`, `_pin_quality`, `_bunny_mp4`)
 7. Views (one function per `action`) and the `VIEWS` router
 
+Episode variants: `view_item` groups sources by episode number. One variant is
+a playable item (`С1Э1 · Агучка`); several variants collapse into a folder
+(`С1Э1 · Агучка / Субцітры`) whose listing is the plain variant names
+(`Агучка`, `Субцітры`) — the same `item` action with `season`+`episode`.
+
 Router actions:
 
 | `action` | Params | View |
@@ -145,7 +150,7 @@ Router actions:
 | `catalog` | `query`, `type`, `genre`, `country`, `minYear`, `maxYear`, `sorting`, `page`, `title` | poster grid |
 | `sorting` | catalog params | sorting menu |
 | `genres` / `countries` / `years` | — | filter menus |
-| `item` | `id`, optional `season` | sources / seasons / episodes |
+| `item` | `id`, optional `season`, optional `episode` | sources / seasons / episodes / variants |
 | `play` | `u` (iframe URL), `t` (title), `p` (poster) | resolves + `setResolvedUrl` |
 | `favorites` | — | saved titles from `favorites.json` |
 | `fav_toggle` | `id`, `t`, `p`, `y` | add/remove favourite + `Container.Refresh` |
