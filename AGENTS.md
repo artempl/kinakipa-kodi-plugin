@@ -11,8 +11,7 @@ plugin.video.kinakipa/          # the add-on itself (zipped as-is)
 ├── addon.xml                   # metadata, entry point, optional inputstream.adaptive
 ├── main.py                     # everything: HTTP, parsers, views, router
 ├── icon.png                    # 256x256
-├── fanart.jpg                  # 1280x720
-└── resources/settings.xml      # Kodi 19+ settings (version="2")
+└── fanart.jpg                  # 1280x720
 repository.kinakipa/addon.xml   # self-updating repo pointing at GitHub Pages
 pages/                          # GitHub Pages root (deployed by workflow)
 ├── index.html                  # landing page
@@ -125,7 +124,11 @@ IA, which keeps the quality fixed instead of adapting.
 
 Single file, stdlib only, Kodi 19+ / Python 3. Sections in order:
 
-1. Settings helpers (`_setting`, `_page_size`, `_mp4_quality`, `_playback_mode`)
+1. Settings helpers — values live in `config.json` in the add-on profile
+   (`config()`, `config_set()`, `_setting`, `_page_size`, `_mp4_quality`,
+   `_playback_mode`). The add-on ships **no** `resources/settings.xml`: Kodi 21
+   on the tested devices (TCL TV, AOSP projector) never exposes it to the
+   settings dialog, so settings are edited in the add-on's own «Налады» menu.
 2. HTTP layer — `http_get`, `http_location`, `http_json`, `http_exists`, `SiteError`
 3. Disk cache in the add-on profile (`cache.json`) — resolved playlists, MP4
    renditions, filter lists
@@ -145,7 +148,7 @@ Router actions:
 | `action` | Params | View |
 |---|---|---|
 | `root` (default) | — | main menu |
-| `search` | — | keyboard → redirects to `catalog` |
+| `search` | — | keyboard → renders catalog results in place |
 | `sections` / `sec` | `n` (section title) | homepage sections |
 | `catalog` | `query`, `type`, `genre`, `country`, `minYear`, `maxYear`, `sorting`, `page`, `title` | poster grid |
 | `sorting` | catalog params | sorting menu |
@@ -154,7 +157,10 @@ Router actions:
 | `play` | `u` (iframe URL), `t` (title), `p` (poster) | resolves + `setResolvedUrl` |
 | `favorites` | — | saved titles from `favorites.json` |
 | `fav_toggle` | `id`, `t`, `p`, `y` | add/remove favourite + `Container.Refresh` |
-| `random` / `settings` | — | redirect / `openSettings` |
+| `settings` | — | in-add-on settings menu |
+| `set_setting` | `key` | select dialog for one setting (+ `key=reset`) |
+| `toggle_setting` | `key` | boolean toggle (alt sources) |
+| `random` | — | redirect to a random title |
 
 Kodi facts used: `sys.argv[0]` = plugin URL, `sys.argv[1]` = handle,
 `sys.argv[2]` = `?query`. HLS playback needs
@@ -171,7 +177,7 @@ and a synthetic `sys.argv`, capturing directory items, notifications and the
 resolved URL.
 
 ```bash
-python3 tests/test_live.py     # hits the real site, ~40 assertions
+python3 tests/test_live.py     # hits the real site, ~60 assertions
 ```
 
 Tests run against live content; IDs used (326, 77044, 10250911, 3498, 161252) are
