@@ -50,7 +50,8 @@
 
 ![Налады: якасць HLS 1080p](docs/screenshots/settings-1080p.jpg)
 ![Серыял 1670: сезоны](docs/screenshots/series-1670-seasons.jpg)
-![Серыял 1670: серыі](docs/screenshots/series-1670-episodes.jpg)
+![Серыял 1670: серыі (агучка/субцітры ў адным пункце)](docs/screenshots/series-1670-g2.jpg)
+![Серыял 1670: выбар варыянта](docs/screenshots/series-1670-g3.jpg)
 ![Плэер: 1080p](docs/screenshots/player-1080p.jpg)
 
 ## Налады
