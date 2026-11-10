@@ -90,8 +90,8 @@ def main():
     CHECKER.check(all(i['item'].properties.get('IsPlayable') for i in movie.items),
                   'movie sources are playable')
     CHECKER.check(not movie.notifications, 'movie view has no errors', repr(movie.notifications))
-    CHECKER.check(any(i['label'].startswith('☆') or i['label'].startswith('★')
-                      for i in movie_all.items), 'movie view offers favourites toggle')
+    CHECKER.check(any('фаварыт' in i['label'].lower() for i in movie_all.items),
+                  'movie view offers favourites toggle')
 
     print('== series item (77044) ==')
     series_all = harness.run('item', id='77044')
@@ -173,7 +173,7 @@ def main():
                       'favourite has remove action')
 
     detail = harness.run('item', id='77044')
-    CHECKER.check(any(i['label'].startswith('★') for i in detail.items),
+    CHECKER.check(any('У фаварытах' in i['label'] for i in detail.items),
                   'item view shows the favourite state')
 
     harness.run('fav_toggle', id='77044', t='Сябры')

@@ -277,8 +277,8 @@ def toggle_favorite(entry):
 
 
 def _favorite_menu(entry):
-    label = '★ Выдаліць з фаварытаў' if is_favorite(entry['id']) \
-        else '☆ Дадаць у фаварыты'
+    label = 'Выдаліць з фаварытаў' if is_favorite(entry['id']) \
+        else 'Дадаць у фаварыты'
     action = 'RunPlugin(%s)' % _url('fav_toggle', id=entry['id'],
                                     t=entry.get('title', ''),
                                     p=entry.get('poster', ''),
@@ -994,10 +994,10 @@ def view_item(params):
             'year': meta['year'],
         }
         if is_favorite(movie_id):
-            _add_folder('★ У фаварытах — прыбраць',
+            _add_folder('У фаварытах — прыбраць',
                         _url('fav_toggle', **_fav_params(favourite_entry)))
         else:
-            _add_folder('☆ Дадаць у фаварыты',
+            _add_folder('Дадаць у фаварыты',
                         _url('fav_toggle', **_fav_params(favourite_entry)))
 
     if is_tv and len(seasons) > 1 and season is None:
