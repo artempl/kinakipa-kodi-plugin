@@ -25,10 +25,14 @@ import xbmcplugin
 import xbmcvfs
 
 
-ADDON = xbmcaddon.Addon()
-ADDON_NAME = ADDON.getAddonInfo('name')
-HANDLE = int(sys.argv[1])
 PLUGIN_URL = sys.argv[0]
+HANDLE = int(sys.argv[1])
+# Resolve the add-on explicitly: some Kodi builds do not wire up the calling
+# add-on for xbmcaddon.Addon() without an id, which breaks openSettings().
+ADDON_ID = (PLUGIN_URL.split('://', 1)[1].split('/', 1)[0]
+            if '://' in PLUGIN_URL else 'plugin.video.kinakipa')
+ADDON = xbmcaddon.Addon(ADDON_ID)
+ADDON_NAME = ADDON.getAddonInfo('name')
 PROFILE_DIR = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
 
 DEFAULT_UA = (
@@ -44,17 +48,61 @@ FILTERS_TTL = 3 * 24 * 3600      # genre/country lists
 # Settings and logging
 # ---------------------------------------------------------------------------
 
-def _setting(key, default=''):
+CONFIG_FILE = 'config.json'
+_CONFIG = None
+
+
+def config():
+    """User settings live in the add-on profile (Kodi's own dialog is not
+    available for add-ons on every build/skin, so the add-on has its own)."""
+    global _CONFIG
+    if _CONFIG is None:
+        path = os.path.join(PROFILE_DIR, CONFIG_FILE)
+        try:
+            with open(path, 'r', encoding='utf-8') as handle:
+                data = json.load(handle)
+            _CONFIG = data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            _CONFIG = {}
+    return _CONFIG
+
+
+def config_set(key, value):
+    global _CONFIG
+    data = dict(config())
+    data[key] = value
+    _CONFIG = data
+    path = os.path.join(PROFILE_DIR, CONFIG_FILE)
     try:
-        value = ADDON.getSetting(key)
-    except Exception:
-        return default
+        if not os.path.isdir(PROFILE_DIR):
+            os.makedirs(PROFILE_DIR)
+        with open(path, 'w', encoding='utf-8') as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=1)
+    except OSError as exc:
+        log('cannot save settings: %s' % exc, xbmc.LOGWARNING)
+
+
+def _setting(key, default=''):
+    value = config().get(key)
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if value in (None, ''):
+        try:
+            value = ADDON.getSetting(key)
+        except Exception:
+            value = ''
     return value if value not in (None, '') else default
 
 
 def _int_setting(key, default):
+    value = config().get(key)
+    if value is None:
+        try:
+            value = ADDON.getSetting(key)
+        except Exception:
+            value = ''
     try:
-        return int(ADDON.getSetting(key) or default)
+        return int(value)
     except (TypeError, ValueError):
         return default
 
@@ -729,9 +777,69 @@ def view_root(_params):
     _finish()
 
 
+QUALITY_CHOICES = ('1080p', '720p', '480p', '360p', '240p')
+
+SETTINGS_MENU = (
+    ('hls_quality', 'Якасць HLS', ('Адаптыўна (аўта)',) + QUALITY_CHOICES, 0),
+    ('playback_mode', 'Спосаб прайгравання',
+     ('Аўтаматычна', 'HLS (inputstream.adaptive)', 'MP4'), 0),
+    ('mp4_quality', 'Якасць MP4', QUALITY_CHOICES, 1),
+    ('page_size', 'Элементаў на старонцы', ('20', '50', '100'), 1),
+)
+
+
+def _setting_value(key, default):
+    return _int_setting(key, default)
+
+
 def view_settings(_params):
-    ADDON.openSettings()
+    xbmcplugin.setContent(HANDLE, 'files')
+    for key, label, choices, default in SETTINGS_MENU:
+        current = choices[min(_setting_value(key, default), len(choices) - 1)]
+        _add_folder('%s: %s' % (label, current),
+                    _url('set_setting', key=key))
+    alt = _setting('show_alt_sources') == 'true'
+    _add_folder('Крыніцы VK / Google Drive: %s' % ('так' if alt else 'не'),
+                _url('toggle_setting', key='show_alt_sources'))
+    _add_folder('Скінуць усе налады', _url('set_setting', key='reset'))
+    _add_folder('Вярнуцца ў галоўнае меню', _url('root'))
     _finish()
+
+
+def view_set_setting(params):
+    key = params.get('key', '')
+    if key == 'reset':
+        config_set('hls_quality', 0)
+        config_set('playback_mode', 0)
+        config_set('mp4_quality', 1)
+        config_set('page_size', 1)
+        config_set('show_alt_sources', False)
+        notify('Налады скінутыя да значэнняў па змаўчанні')
+        xbmc.executebuiltin('Container.Refresh')
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        return
+
+    for setting_key, label, choices, default in SETTINGS_MENU:
+        if setting_key != key:
+            continue
+        current = min(_setting_value(key, default), len(choices) - 1)
+        index = xbmcgui.Dialog().select(label, list(choices), preselect=current)
+        if index >= 0:
+            config_set(key, index)
+            notify('%s: %s' % (label, choices[index]))
+        xbmc.executebuiltin('Container.Refresh')
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        return
+    _finish()
+
+
+def view_toggle_setting(params):
+    key = params.get('key', 'show_alt_sources')
+    value = _setting(key) != 'true'
+    config_set(key, value)
+    notify('Крыніцы VK / Google Drive: %s' % ('уключаныя' if value else 'выключаныя'))
+    xbmc.executebuiltin('Container.Refresh')
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
 def view_search(_params):
@@ -740,8 +848,8 @@ def view_search(_params):
     if keyboard.isConfirmed():
         query = (keyboard.getText() or '').strip()
         if query:
-            target = _url('catalog', query=query, title='Пошук: %s' % query)
-            xbmc.executebuiltin('Container.Update(%s,replace)' % target)
+            view_catalog({'query': query, 'title': 'Пошук: %s' % query})
+            return
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
@@ -1164,6 +1272,8 @@ VIEWS = {
     'play': view_play,
     'random': view_random,
     'settings': view_settings,
+    'set_setting': view_set_setting,
+    'toggle_setting': view_toggle_setting,
 }
 
 

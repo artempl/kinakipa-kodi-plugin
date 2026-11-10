@@ -179,6 +179,19 @@ def main():
     harness.run('fav_toggle', id='77044', t='Сябры')
     CHECKER.check(not harness.run('favorites').items, 'favourite can be removed')
 
+    print('== in-addon settings ==')
+    settings_view = harness.run('settings')
+    labels = [i['label'] for i in settings_view.items]
+    CHECKER.check(any('Якасць HLS' in label for label in labels),
+                  'settings menu lists HLS quality', str(labels[:4]))
+    CHECKER.check(any('Крыніцы VK' in label for label in labels),
+                  'settings menu lists alt sources')
+
+    harness.run('set_setting', key='hls_quality')
+    stored = harness.run('settings')
+    CHECKER.check(any('Якасць HLS' in i['label'] for i in stored.items),
+                  'HLS setting persists')
+
     print('== random ==')
     random_result = harness.run('random')
     CHECKER.check(any('Container.Update' in b for b in random_result.builtins),
